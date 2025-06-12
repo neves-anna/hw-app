@@ -1,0 +1,6 @@
+venv/
+.env
+
+jenkins-keys/
+src/__pycache__
+

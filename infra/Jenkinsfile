@@ -1,0 +1,65 @@
+pipeline {
+    agent any
+    
+    environment {
+        APP_NAME = 'hw-app'
+        REGISTRY = 'localhost:5000'
+        IMAGE_TAG = "${BUILD_NUMBER}"
+        MANIFESTS_REPO = 'https://github.com/Geninnd/hw-k8s.git'
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh """
+                    cd infra
+                    docker build -t ${REGISTRY}/${APP_NAME}:${IMAGE_TAG} -f Dockerfile ..
+                """
+            }
+        }
+
+        stage('Push') {
+            steps {
+                sh """
+                    docker push ${REGISTRY}/${APP_NAME}:${IMAGE_TAG}
+                """
+            }
+        }
+
+        stage('Update Manifests') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'github-token', passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
+                    sh """
+                        rm -rf hw-k8s
+                        git clone https://\${GIT_USERNAME}:\${GIT_PASSWORD}@github.com/Geninnd/hw-k8s.git
+                        cd hw-k8s/manifests
+                        sed -i 's|image: .*/${APP_NAME}:.*|image: host.minikube.internal:5000/${APP_NAME}:${IMAGE_TAG}|' deployment.yaml
+                        git config --global user.email "jenkins@geninnd.com"
+                        git config --global user.name "Jenkins CI"
+                        git add deployment.yaml
+                        git diff-index --quiet HEAD || git commit -m "Update image tag to ${IMAGE_TAG}"
+                        git push origin main || true
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+        success {
+            echo "Pipeline executado com sucesso!"
+        }
+        failure {
+            echo "Pipeline falhou!"
+        }
+    }
+} 
