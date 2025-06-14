@@ -1,31 +1,22 @@
 pipeline {
-    // CORREÇÃO: Usa um agente Docker para garantir que os comandos 'docker' estejam disponíveis.
-    agent {
-        docker {
-            image 'docker:latest'
-            // Monta o socket do Docker do host para que o container possa controlar o Docker
-            args '-v /var/run/docker.sock:/var/run/docker.sock'
-        }
-    }
+    agent any
     
     environment {
         APP_NAME = 'hw-app'
         REGISTRY = 'localhost:5000'
-        IMAGE_TAG = "${env.BUILD_NUMBER}" // Usando a variável de ambiente do Jenkins
-        MANIFESTS_REPO = 'https://github.com/neves-anna/hw-k8s.git'
+        IMAGE_TAG = "${BUILD_NUMBER}"
+        MANIFESTS_REPO = 'https://github.com/Geninnd/hw-k8s.git'
     }
     
     stages {
         stage('Checkout') {
             steps {
-                // Clona o código do repositório configurado no job
                 checkout scm
             }
         }
 
         stage('Build') {
             steps {
-                // Constrói a imagem Docker
                 sh """
                     cd infra
                     docker build -t ${REGISTRY}/${APP_NAME}:${IMAGE_TAG} -f Dockerfile ..
@@ -35,7 +26,6 @@ pipeline {
 
         stage('Push') {
             steps {
-                // Envia a imagem para o seu registry local
                 sh """
                     docker push ${REGISTRY}/${APP_NAME}:${IMAGE_TAG}
                 """
@@ -44,26 +34,17 @@ pipeline {
 
         stage('Update Manifests') {
             steps {
-                // Usa a credencial do tipo "Username with password" com o ID 'git-token'
-                withCredentials([usernamePassword(credentialsId: 'git-token', passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
+                withCredentials([usernamePassword(credentialsId: 'github-token', passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
                     sh """
-                        # Limpa qualquer clone antigo e clona o repositório de manifestos
                         rm -rf hw-k8s
-                        git clone https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/neves-anna/hw-k8s.git
-                        
+                        git clone https://\${GIT_USERNAME}:\${GIT_PASSWORD}@github.com/Geninnd/hw-k8s.git
                         cd hw-k8s/manifests
-                        
-                        # Atualiza a tag da imagem no arquivo de deployment
                         sed -i 's|image: .*/${APP_NAME}:.*|image: host.minikube.internal:5000/${APP_NAME}:${IMAGE_TAG}|' deployment.yaml
-                        
-                        # Configura o Git para fazer o commit
-                        git config --global user.email "anna.neves@makes.ai"
-                        git config --global user.name "neves-anna"
-                        
-                        # Adiciona, commita (apenas se houver mudanças) e faz o push
+                        git config --global user.email "jenkins@geninnd.com"
+                        git config --global user.name "Jenkins CI"
                         git add deployment.yaml
-                        git diff-index --quiet HEAD || git commit -m "CI: Update image tag to ${IMAGE_TAG}"
-                        git push origin main
+                        git diff-index --quiet HEAD || git commit -m "Update image tag to ${IMAGE_TAG}"
+                        git push origin main || true
                     """
                 }
             }
@@ -72,7 +53,6 @@ pipeline {
 
     post {
         always {
-            // Limpa o workspace ao final da execução
             cleanWs()
         }
         success {
@@ -82,4 +62,4 @@ pipeline {
             echo "Pipeline falhou!"
         }
     }
-}
+} 
