@@ -5,7 +5,7 @@ pipeline {
         APP_NAME = 'hw-app'
         REGISTRY = 'localhost:5000'
         IMAGE_TAG = "${BUILD_NUMBER}"
-        MANIFESTS_REPO = 'https://github.com/Geninnd/hw-k8s.git'
+        MANIFESTS_REPO = 'https://github.com/neves-anna/hw-k8s.git'
     }
     
     stages {
