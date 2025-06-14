@@ -5,7 +5,7 @@ pipeline {
         APP_NAME = 'hw-app'
         REGISTRY = 'localhost:5000'
         IMAGE_TAG = "${BUILD_NUMBER}"
-        MANIFESTS_REPO = 'https://github.com/Gennind/hw-k8s.git'
+        MANIFESTS_REPO = 'https://github.com/neves-anna/hw-k8s.git'
     }
     
     stages {
@@ -37,11 +37,11 @@ pipeline {
                 withCredentials([usernamePassword(credentialsId: 'git-token', passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
                     sh """
                         rm -rf hw-k8s
-                        git clone https://\${GIT_USERNAME}:\${GIT_PASSWORD}@github.com/Geninnd/hw-k8s.git
+                        git clone https://\${GIT_USERNAME}:\${GIT_PASSWORD}@github.com/neves-anna/hw-k8s.git
                         cd hw-k8s/manifests
                         sed -i 's|image: .*/${APP_NAME}:.*|image: host.minikube.internal:5000/${APP_NAME}:${IMAGE_TAG}|' deployment.yaml
-                        git config --global user.email "jenkins@geninnd.com"
-                        git config --global user.name "Jenkins CI"
+                        git config --global user.email "anna.neves@makes.ai"
+                        git config --global user.name "neves-anna"
                         git add deployment.yaml
                         git diff-index --quiet HEAD || git commit -m "Update image tag to ${IMAGE_TAG}"
                         git push origin main || true
