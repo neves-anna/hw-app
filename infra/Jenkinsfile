@@ -5,7 +5,7 @@ pipeline {
         APP_NAME = 'hw-app'
         REGISTRY = 'localhost:5000'
         IMAGE_TAG = "${BUILD_NUMBER}"
-        MANIFESTS_REPO = 'https://github.com/neves-anna/hw-k8s.git'
+        MANIFESTS_REPO = 'https://github.com/Gennind/hw-k8s.git'
     }
     
     stages {
@@ -34,7 +34,7 @@ pipeline {
 
         stage('Update Manifests') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'github-token', passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
+                withCredentials([usernamePassword(credentialsId: 'git-token', passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
                     sh """
                         rm -rf hw-k8s
                         git clone https://\${GIT_USERNAME}:\${GIT_PASSWORD}@github.com/Geninnd/hw-k8s.git
